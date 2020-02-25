@@ -1,83 +1,124 @@
-import * as Amqp from "amqp-ts";
+import * as Amqp from 'amqp-ts';
 import * as dotenv from 'dotenv';
 import LogstashClient from './LogstashClient';
-import { on } from "cluster";
+import { on } from 'cluster';
+import { isNull } from 'util';
 
-dotenv.config();
-//console.log("1");
-// npm run build-ts
-// npm run rabbit
+class RabbitConsumer {
+  private amqpHost: string;
+  private amqpPort: string;
+  private exchangeName: string;
+  private exchangeType: string;
+  private connection: any;
+  private exchange: any;
+  private queueName: string;
+  private logstashClient: any;
+  private queue: any;
+  private routingKey: any;
 
-var amqpHost = process.env.AMQP_HOST ? process.env.AMQP_HOST : "localhost";
-var amqpPort = process.env.AMQP_PORT ? process.env.AMQP_PORT : "5672";
-var connection = new Amqp.Connection("amqp://" + amqpHost + ":" + amqpPort);
-connection.on("error_connection", (err) => {
-    console.log(err);
-});
-connection.on("open_connection", () => {
-    console.log("open");
-});
+  constructor(
+    amqpHost: string | null = null,
+    amqpPort: string | null = null,
+    exchangeName: string | null = null,
+    exchangeType: string | null = null,
+    queueName: string | null = null,
+    routingKey: any | null = null,
+  ) {
+    dotenv.config();
+    if (isNull(amqpHost)) {
+      this.amqpHost = process.env.AMQP_HOST ? process.env.AMQP_HOST : 'localhost';
+    } else {
+      this.amqpHost = amqpHost;
+    }
+    if (isNull(amqpPort)) {
+      this.amqpPort = process.env.AMQP_PORT ? process.env.AMQP_PORT : '5672';
+    } else {
+      this.amqpPort = amqpPort;
+    }
 
-connection.on("close_connection", () => {
-    console.log("close");
-});
+    if (isNull(exchangeName)) {
+      this.exchangeName = process.env.AMQP_EXCHANGE_NAME ? process.env.AMQP_EXCHANGE_NAME : 'exchange';
+    } else {
+      this.exchangeName = exchangeName;
+    }
 
-connection.on("lost_connection", () => {
-    console.log("lost");
-});
+    if (isNull(exchangeType)) {
+      this.exchangeType = process.env.AMQP_EXCHANGE_TYPE ? process.env.AMQP_EXCHANGE_TYPE : 'default';
+    } else {
+      this.exchangeType = exchangeType;
+    }
 
-connection.on("trying_connect", () => {
-    console.log("try");
-});
+    if (isNull(queueName)) {
+      this.queueName = process.env.AMQP_QUEUE ? process.env.AMQP_QUEUE : exchangeType == 'topic' ? '' : 'queue';
+    } else {
+      this.queueName = queueName;
+    }
 
-connection.on("re_established_connection", () => {
-    console.log("re");
-});
+    if (isNull(routingKey)) {
+      this.routingKey = process.env.AMQP_ROUTING_KEY ? process.env.AMQP_ROUTING_KEY : undefined;
+    } else {
+      this.routingKey = routingKey;
+    }
 
+    //this.startConnection();
 
-var exchangeName = process.env.AMQP_EXCHANGE_NAME ? process.env.AMQP_EXCHANGE_NAME : "exchange";
-var exchangeType = process.env.AMQP_EXCHANGE_TYPE ? process.env.AMQP_EXCHANGE_TYPE : "default";
-var exchange = connection.declareExchange(exchangeName, exchangeType);
-var queueName = process.env.AMQP_QUEUE ?
-    process.env.AMQP_QUEUE :
-    (exchangeType == "topic" ? "" : "queue");
-var queue = connection.declareQueue(queueName);
-var routingKey = process.env.AMQP_ROUTING_KEY ? process.env.AMQP_ROUTING_KEY : undefined;
+    //this.exchange = this.connection.declareExchange(this.exchangeName, this.exchangeType);
+    //this.queue = this.connection.declareQueue(queueName);
+    //this.queueBind();
+    //this.queueActivateConsumer();
+    //this.queueCompleteConfiguration();
+  }
 
-var logstashClient = new LogstashClient();
-console.log("hjk");
-queue.bind(exchange, routingKey);
-
-
-//console.log(a);
-queue.activateConsumer((message) => {
-    console.log("Message received: ", message.getContent());
-    logstashClient.makePost(message.getContent(), (result: any) => {
-        console.log(result);
-        if (result) {
-            message.ack();
-        }
+  public startConnection(startConsumer: boolean = false) {
+    this.connection = new Amqp.Connection('amqp://' + this.amqpHost + ':' + this.amqpPort);
+    this.connection.on('error_connection', (err: any) => {
+      console.log(err);
     });
-}, { "noAck": false });
+    this.connection.on('open_connection', () => {
+      console.log('open');
+    });
 
-connection.completeConfiguration().then(() => {
-    connection.on("error_connection", (err) => {
+    this.connection.on('close_connection', () => {
+      console.log('close');
+    });
+
+    this.connection.on('lost_connection', () => {
+      console.log('lost');
+    });
+
+    this.connection.on('trying_connect', () => {
+      console.log('try');
+    });
+
+    this.connection.on('re_established_connection', () => {
+      console.log('re');
+    });
+    this.exchange = this.connection.declareExchange(this.exchangeName, this.exchangeType);
+    this.queue = this.connection.declareQueue(this.queueName);
+    this.queueBind();
+  }
+
+  private queueBind() {
+    this.queue.bind(this.exchange, this.routingKey);
+  }
+
+  public queueActivateConsumer(callback: any) {
+    this.queue.activateConsumer(
+      (message: any) => {
+        console.log('Message received: ', message.getContent());
+        callback(message);
+      },
+      { noAck: false },
+    );
+  }
+
+  public queueCompleteConfiguration() {
+    this.connection.completeConfiguration().then(() => {
+      this.connection.on('error_connection', (err: any) => {
         console.log(err);
+      });
     });
-});
+  }
+}
 
-//console.log("2");
-
-// it is possible that the following message is not received because
-// it can be sent before the queue, binding or consumer exist
-//var msg = new Amqp.Message("Test");
-//exchange.send(msg,routingKey);
-//console.log("Sent");
-
-//connection.completeConfiguration().then(() => {
-//    // the following message will be received because
-//    // everything you defined earlier for this connection now exists
-//        var msg2 = new Amqp.Message("Test2");
-//        exchange.send(msg2);
-//    console.log("Ciao");
-//});
+export default RabbitConsumer;

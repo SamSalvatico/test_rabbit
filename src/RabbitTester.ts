@@ -3,6 +3,7 @@ import LogstashClient from './LogstashClient';
 
 var logstashClient = new LogstashClient();
 var rabbitConsumer = new RabbitConsumer();
+var sendNackOnError: any = process.env.AMQP_SEND_NACK_ON_ERROR;
 
 rabbitConsumer.startConnection(false);
 rabbitConsumer.queueActivateConsumer((message: any) => {
@@ -10,7 +11,12 @@ rabbitConsumer.queueActivateConsumer((message: any) => {
     console.log(result);
     if (result) {
       message.ack();
-      console.log('ack send');
+    } else {
+      console.log(sendNackOnError);
+      if (sendNackOnError == true) {
+        message.nack();
+        console.log('ack send');
+      }
     }
   });
 });

@@ -1,0 +1,11 @@
+{
+  "folders": [
+    {
+      "path": "."
+    }
+  ],
+  "settings": {
+    "maven.view": "flat",
+    "typescript.tsdk": "./node_modules/typescript/lib"
+  }
+}

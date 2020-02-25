@@ -3,6 +3,7 @@ import * as dotenv from 'dotenv';
 import LogstashClient from './LogstashClient';
 import { on } from 'cluster';
 import { isNull } from 'util';
+import Utils from './Utils';
 
 class RabbitConsumer {
   private amqpHost: string;
@@ -25,48 +26,12 @@ class RabbitConsumer {
     routingKey: any | null = null,
   ) {
     dotenv.config();
-    if (isNull(amqpHost)) {
-      this.amqpHost = process.env.AMQP_HOST ? process.env.AMQP_HOST : 'localhost';
-    } else {
-      this.amqpHost = amqpHost;
-    }
-    if (isNull(amqpPort)) {
-      this.amqpPort = process.env.AMQP_PORT ? process.env.AMQP_PORT : '5672';
-    } else {
-      this.amqpPort = amqpPort;
-    }
-
-    if (isNull(exchangeName)) {
-      this.exchangeName = process.env.AMQP_EXCHANGE_NAME ? process.env.AMQP_EXCHANGE_NAME : 'exchange';
-    } else {
-      this.exchangeName = exchangeName;
-    }
-
-    if (isNull(exchangeType)) {
-      this.exchangeType = process.env.AMQP_EXCHANGE_TYPE ? process.env.AMQP_EXCHANGE_TYPE : 'default';
-    } else {
-      this.exchangeType = exchangeType;
-    }
-
-    if (isNull(queueName)) {
-      this.queueName = process.env.AMQP_QUEUE ? process.env.AMQP_QUEUE : exchangeType == 'topic' ? '' : 'queue';
-    } else {
-      this.queueName = queueName;
-    }
-
-    if (isNull(routingKey)) {
-      this.routingKey = process.env.AMQP_ROUTING_KEY ? process.env.AMQP_ROUTING_KEY : undefined;
-    } else {
-      this.routingKey = routingKey;
-    }
-
-    //this.startConnection();
-
-    //this.exchange = this.connection.declareExchange(this.exchangeName, this.exchangeType);
-    //this.queue = this.connection.declareQueue(queueName);
-    //this.queueBind();
-    //this.queueActivateConsumer();
-    //this.queueCompleteConfiguration();
+    this.amqpHost = Utils.getPropertyValueComparing(amqpHost, "AMQP_HOST", "localhost");
+    this.amqpPort = Utils.getPropertyValueComparing(amqpPort, "AMQP_PORT", 5672);
+    this.exchangeName = Utils.getPropertyValueComparing(exchangeName, "AMQP_EXCHANGE_NAME", "exchange");
+    this.exchangeType = Utils.getPropertyValueComparing(exchangeType, "AMQP_EXCHANGE_TYPE", "default");
+    this.queueName = Utils.getPropertyValueComparing(queueName, "AMQP_QUEUE", "queue");
+    this.routingKey = Utils.getPropertyValueComparing(routingKey, "AMQP_ROUTING_KEY", undefined);
   }
 
   public startConnection(startConsumer: boolean = false) {

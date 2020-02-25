@@ -1,6 +1,7 @@
 import http from 'http';
 import { isNull } from 'util';
 import * as dotenv from 'dotenv';
+import Utils from './Utils';
 
 class LogstashClient {
   private host: string;
@@ -10,25 +11,11 @@ class LogstashClient {
 
   constructor(logstashProtocol: string | null = null, logstashHost: string | null = null, logstashPort: string | number | null = null) {
     dotenv.config();
-    if (isNull(logstashProtocol)) {
-      this.protocol = process.env.LOGSTASH_PROTOCOL ? process.env.LOGSTASH_PROTOCOL : "http";
-    }
-    else {
-      this.protocol = logstashProtocol;
-    }
-    if (isNull(logstashHost)) {
-      this.host = process.env.LOGSTASH_HOST ? process.env.LOGSTASH_HOST : "localhost";
-    }
-    else {
-      this.host = logstashHost;
-    }
-    if (isNull(logstashPort)) {
-      this.port = process.env.LOGSTASH_PORT ? parseInt(process.env.LOGSTASH_PORT) : 9500;
-    }
-    else {
-      this.port = (typeof logstashPort === 'string') ? parseInt(logstashPort) : logstashPort;
-
-    }
+    this.protocol = Utils.getPropertyValueComparing(logstashProtocol, "LOGSTASH_PROTOCOL", "http");
+    this.host = Utils.getPropertyValueComparing(logstashHost, "LOGSTASH_HOST", "localhost");
+    this.port = parseInt(
+      Utils.getPropertyValueComparing(logstashPort, "LOGSTASH_PORT", "9500")
+    );
     this.initializeRequestOptions();
   }
 
@@ -55,11 +42,11 @@ class LogstashClient {
     this.setContentLength(stringBody);
     var successfull = false;
     const req = http.request(this.requestOptions, (res: any) => {
-      console.log(res.statusCode);  
+      console.log(res.statusCode);
       res.on('data', (d: any) => {
         console.log(d);
       });
-      res.on('end',() => {
+      res.on('end', () => {
         callback(true);
       });
     });

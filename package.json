@@ -11,7 +11,7 @@
     "build-ts": "tsc -p .",
     "lint": "tsc --noEmit && eslint --ext .js,.jsx,.ts,.tsx ./src",
     "lint:fix": "tsc --noEmit && eslint --ext .js,.jsx,.ts,.tsx ./src --fix",
-    "rabbit": "node ./dist/RabbitTester.js",
+    "rabbit": "tsc -p . && node ./dist/RabbitTester.js",
     "rabbitpub": "node ./dist/RabbitPublisher.js"
   },
   "author": "",
